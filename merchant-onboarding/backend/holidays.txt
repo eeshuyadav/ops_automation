@@ -1,0 +1,9 @@
+# Public holidays excluded from `time_taken_by_eb` for seeded rows.
+# One ISO date (YYYY-MM-DD) per line. Lines starting with `#` are ignored.
+# This file is read at the start of every poller run; no restart needed.
+#
+# Add Indian public holidays + any internal Easebuzz off-days here.
+# Example:
+# 2026-01-26   # Republic Day
+# 2026-08-15   # Independence Day
+# 2026-10-02   # Gandhi Jayanti

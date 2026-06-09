@@ -1,0 +1,30 @@
+# Web framework
+fastapi>=0.115.0
+uvicorn[standard]>=0.32.0
+pydantic>=2.9.0
+pydantic-settings>=2.5.0
+
+# DB
+sqlalchemy[asyncio]>=2.0.35
+asyncpg>=0.29.0
+psycopg[binary]>=3.1.18
+
+# Poller — Google Sheets
+google-api-python-client>=2.120.0
+google-auth>=2.28.0
+google-auth-oauthlib>=1.2.0
+
+# Env
+python-dotenv>=1.0.1
+
+# Flexible date parsing — sheet uses many formats
+# ("27-January-26", "10-Oct-2022", "Apr 15, 2024", "21-01-2023", ...)
+python-dateutil>=2.9.0
+
+# Poller — Slack reader (salt & key dates from #merchant-onboarding channel)
+slack-sdk>=3.27.0
+
+# Auth — JWT issuance + Google ID-token verification.
+# google-auth is already in this file (used for Sheets). PyJWT is the
+# lightweight signer for our own session tokens.
+PyJWT>=2.8.0

@@ -1,0 +1,40 @@
+# Secrets & environment
+.env
+.env.bak.*
+.env.local
+*.pem
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+
+# Runtime artefacts
+logs/
+*.log
+nohup.out
+
+# Data dumps (real merchant data — never commit)
+*.xlsx
+*.csv
+*.sqlite
+*.db
+
+# Editors / OS
+.vscode/
+.idea/
+.DS_Store
+*.swp
+*.swo
+*~
+*.bak

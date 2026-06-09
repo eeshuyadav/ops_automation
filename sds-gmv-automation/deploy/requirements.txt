@@ -1,0 +1,7 @@
+requests>=2.31
+python-dotenv>=1.0
+openpyxl>=3.1
+gspread>=6.0
+google-auth>=2.27
+google-auth-oauthlib>=1.2
+google-api-python-client>=2.110

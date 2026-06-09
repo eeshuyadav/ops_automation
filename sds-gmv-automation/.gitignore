@@ -1,0 +1,15 @@
+# Secrets — never commit
+env
+credentials.json
+oauth_credentials.json
+oauth_token.json
+*.template
+
+# Runtime artifacts
+.venv/
+.parts/
+logs/
+*.csv
+*.xlsx
+__pycache__/
+*.pyc

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+  <body style="font-family: Arial, sans-serif; color: #222; font-size: 14px; line-height: 1.5;">
+    <p>Dear {{ merchant_name or "" }} Team,</p>
+
+    <p>We have received a <b>Level 1 Chargeback</b> dispute from Easebuzz for one of your transactions. Kindly take immediate action within the TAT to avoid any settlement deductions.</p>
+
+    <p>
+      ✅ <b>DOCUMENTS REQUIRED FROM YOU</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      Please arrange and share <b>ALL</b> of the following in PDF format only:
+    </p>
+
+    <ol style="margin-top:0;">
+      <li>✅ Proof of Delivery (POD) / Shipping Tracking Screenshot</li>
+      <li>✅ Invoice Copy for the order</li>
+      <li>✅ Any Customer Communication (if available)</li>
+    </ol>
+
+    <p>
+      📤 <b>HOW TO SUBMIT</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      <b>NOTE:</b> Share the documents directly with the Easebuzz chargeback team, keeping <b>GoKwik in CC</b>.
+    </p>
+
+    <p>
+      ⚠️ <b>IMPORTANT REMINDERS</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • DO NOT process any refund for this chargeback transaction.<br/>
+      • If no documents are submitted before the TAT, the case will be auto-accepted in the customer's favour and the dispute amount will be deducted from your settlements.<br/>
+      • Responding at Level 1 is strongly advised to avoid escalation to Pre-Arbitration / Arbitration stages.
+    </p>
+
+    <p>
+      <b>DETAILS</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • Payment ID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ merchant_transaction_id or "—" }}<br/>
+      • Phone number&nbsp;&nbsp;&nbsp;&nbsp;: {{ customer_phone or "—" }}
+    </p>
+
+    <p>For any clarifications, please reply to this email.</p>
+
+    <p style="margin-top:20px;">
+      Regards,<br/>
+      Sachin
+    </p>
+  </body>
+</html>

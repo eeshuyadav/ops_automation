@@ -1,0 +1,117 @@
+# =============================================================================
+#   Worldline chargeback automation.
+#
+#   Trigger: original mail from Worldline chargeback team (or its forwarded
+#   copy via the Accounts Receivable group), subject pattern
+#   "Worldline New Chargeback Request For <Merchant> = <ID>".
+#
+#   Flow per tick:
+#     1. Find new threads matching the subject + sender pattern.
+#     2. Parse the body's 2-row data table to extract Payment id
+#        (SM_Transaction_ID_SRC_PRN), Merchant_Name, Bank_RRN, etc.
+#     3. Take the merchant name from the subject (between "For" and "=")
+#        and look up CSM directly in Planhat. If found -> add to Cc;
+#        if not found -> still send, just without a CSM on Cc.
+#     4. Build the recipient list:
+#         - To: merchant addresses from the original mail's To header
+#               (any address that is NOT @gokwik.co or the Worldline sender)
+#         - Cc: internal_always_cc + CSM emails
+#     5. Reply in the same thread with templates/reply_worldline.html.j2.
+#     6. Log the success to the tracker sheet, label the thread.
+# =============================================================================
+
+# --- Auth: shared OAuth token with the other flows -------------------------
+auth:
+  credentials_path: "credentials.json"
+  token_path:       "token.json"
+
+# --- Identity ---------------------------------------------------------------
+self_email:        "chargeback-automation@gokwik.co"
+self_display_name: "Chargeback Automation"
+contact_email:     ""
+
+# --- Trigger ---------------------------------------------------------------
+# We catch both the original Worldline sender AND mails forwarded via the
+# Accounts Receivable Google Group (the team often re-broadcasts these).
+# The subject regex is enforced in code so we don't act on unrelated mail.
+extra_query:  'subject:"Worldline New Chargeback Request" -label:auto-replied-worldline -label:auto-logged-manual-worldline after:2026/05/10'
+subject_regex: 'Worldline\s+New\s+Chargeback\s+Request\s+For\b'
+# At least one of these senders must originate the thread.
+allowed_senders:
+  - "chargeback@mail.in.worldline-solutions.com"
+  - "accountsreceivable@gokwik.co"
+
+poll_interval_seconds: 3600
+auto_replied_label:        "auto-replied-worldline"
+auto_logged_manual_label:  "auto-logged-manual-worldline"
+auto_reminded_label:       "auto-reminded-worldline"
+reminder_delay_hours:      48
+reminder:
+  template_path: "templates/reminder.html.j2"
+  after_date:    "2026/05/10"
+
+# --- Planhat (CSM lookup by merchant name from the subject) ----------------
+planhat:
+  token_path: "planhat_token.txt"
+  base_url:   "https://api.planhat.com"
+
+# --- Always-Cc — shared internal ops team + Worldline + Easebuzz fwd loop --
+internal_always_cc:
+  - "musadiq.ahmed@gokwik.co"
+  - "sachin.mk@gokwik.co"
+  - "accountsreceivable@gokwik.co"
+  - "chargeback@mail.in.worldline-solutions.com"
+
+# Domains/addresses that should NEVER be picked up as merchant TO. Used when
+# building the recipient list from the original mail's To header.
+internal_domains:
+  - "gokwik.co"
+  - "easebuzz.in"
+  - "worldline-solutions.com"
+  - "tpsl.in"   # Worldline support escalation chain
+
+# --- Reply ------------------------------------------------------------------
+reply:
+  template_path:    "templates/reply_worldline.html.j2"
+  subject_override: ""
+  reply_in_thread:  true
+  required_fields:
+    - payment_id      # comes from body table
+    # merchant_email isn't strictly required — if we have no merchant recipient
+    # we fall through to the manual tracker instead.
+
+# --- Success tracker — separate Worldline tab on the chargebacks sheet -----
+log_sheet:
+  spreadsheet_id: "1r5bELHKHJhWrydAs7TWOyyC-fkFrexbIn6cUeTp0MLw"
+  tab_pattern:    "{month} 26 Worldline"
+  columns:
+    - "__today__"                       # [A] Date logged
+    - "bank_ticket"                     # [B] Worldline Bank_Ticket
+    - "payment_id"                      # [C] Payment id (SM_Transaction_ID)
+    - "transaction_date"                # [D] TXN Date
+    - "tpsl_txn_amount"                 # [E] TXN Amount
+    - "bank_disputed_amount"            # [F] CBK Amount
+    - "merchant_email_id"               # [G] Merchant Email id (1st To)
+    - "merchant_name"                   # [H] Merchant (from subject)
+    - "__static__:Pending with ME"      # [I] Status
+    - "__static__:WIP"                  # [J] Ops Remarks
+    - "case_id"                         # [K] Case Id (from subject)
+    - "__static__:Sachin(bot)"          # [L] Ops POC
+
+# --- Manual review tracker — when merchant TO can't be derived --------------
+failed_log_sheet:
+  spreadsheet_id: "1BOh8xO4NEWtVQ8UfI0ef2cXGRx9guoi8FEZ6d19djbM"
+  tab_pattern:    "Manual Review Worldline"
+  columns:
+    - "__today__"
+    - "bank_ticket"
+    - "payment_id"
+    - "transaction_date"
+    - "tpsl_txn_amount"
+    - "bank_disputed_amount"
+    - "__static__:"
+    - "merchant_name"
+    - "__static__:Manual Review"
+    - "__static__:no merchant TO resolved"
+    - "case_id"
+    - "__static__:Sachin(bot-skipped)"

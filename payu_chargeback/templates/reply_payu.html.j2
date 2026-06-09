@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html>
+  <body style="font-family: Arial, sans-serif; color: #222; font-size: 14px; line-height: 1.5;">
+    <p>Dear {{ merchant_name or "" }} Team,</p>
+
+    <p>Hope you're doing well!</p>
+
+    <p>This is an automated alert from <b>GoKwik</b> to inform you that <b>PayU</b> has notified us of new chargeback cases associated with your account. Kindly take immediate action to avoid any financial penalties.</p>
+
+    {% if cases %}
+    <p>
+      📋 <b>CASES TO ACTION</b> ({{ cases|length }})<br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+    </p>
+    {% for c in cases %}
+    <p style="margin:0 0 10px 0; padding-left:8px; border-left:3px solid #4a90e2;">
+      <b>{{ loop.index }}.</b>
+      Payment ID&nbsp;&nbsp;&nbsp;&nbsp;: {{ c.transaction_id or "—" }}<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;Phone&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ c.customer_phone or "—" }}<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;Amount&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: ₹{{ c.transaction_amount or "—" }}<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;Txn Date&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ c.transaction_date or "—" }}<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;Case Number&nbsp;&nbsp;&nbsp;: {{ c.case_number or "—" }}<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;Target Reply&nbsp;&nbsp;: {{ c.target_reply_date or "—" }}<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;Status&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ c.status or c._sheet or "—" }}<br/>
+      &nbsp;&nbsp;&nbsp;&nbsp;Reason&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ c.reason_code or "—" }}
+    </p>
+    {% endfor %}
+    {% endif %}
+
+    <p>
+      ⏱️ <b>REVISED RESPONSE TIMEFRAMES (PayU Scheme Update)</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • 1st Level Chargeback&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → 1 to 5 Calendar Days<br/>
+      • 2nd Level Chargeback &amp; Pre-arbitration&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → 1 to 3 Calendar Days<br/>
+      • Pre-Compliance &amp; Arbitration&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; → 1 Calendar Day
+    </p>
+
+    <p>
+      ✅ <b>ACTION REQUIRED FROM YOUR SIDE</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+    </p>
+    <ol style="margin-top:0;">
+      <li>Log in to your PayU Merchant Panel → Chargeback Dashboard</li>
+      <li>Review each chargeback case listed above (also in the attached tracker)</li>
+      <li>Submit your response and supporting documents within the timeframe mentioned above</li>
+    </ol>
+
+    <p>
+      ⚠️ <b>IMPORTANT REMINDERS</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • DO NOT process refunds for any transaction against which a chargeback has been raised. Doing so gives the card-issuing bank the right to raise arbitration, and a penalty of $500 may be levied on the losing party (the merchant).<br/>
+      • Failure to respond within the deadline will result in the bank automatically closing the case in the customer's favour.
+    </p>
+
+    <p>For any queries, please reach out directly to PayU at: <a href="mailto:disputes@payu.in">disputes@payu.in</a></p>
+
+    <p>Should you need any assistance from GoKwik, please reply to this email and our team will support you promptly.</p>
+
+    <p style="margin-top:20px;">
+      Regards,<br/>
+      Sachin<br/>
+      Chargebacks
+    </p>
+  </body>
+</html>

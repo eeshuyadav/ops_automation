@@ -1,0 +1,139 @@
+# =============================================================================
+#   PAYU First-Level Chargeback automation config.
+#   Triggered by the team-forwarded notification from PayU-Chargeback@payu.in.
+#
+#   Flow (one tick of the cron):
+#     1. Find Gmail threads matching the subject + body pattern, not yet labeled.
+#     2. For each, download the .xls(x) attachment and extract Phone +
+#        Payment id (TRANSACTION ID) from the 'New' sheet.
+#     3. From the forwarded body, extract the merchant URL ("URL : ...").
+#     4. Look up the URL in the Merchant Onboarding sheet to resolve the
+#        merchant's Email (TO) and Entity Name.
+#     5. Use the Entity Name to find the CSM via Planhat. If found → Cc.
+#        If not found → still reply, just without a CSM on Cc.
+#     6. Send the reply (templates/reply_payu.html.j2) in the same thread,
+#        Cc'ing the internal ops team.
+#     7. Log to tracker + apply auto-replied-payu label.
+# =============================================================================
+
+# --- Auth: shared OAuth token with the Easebuzz flows ----------------------
+auth:
+  credentials_path: "credentials.json"
+  token_path:       "token.json"
+
+# --- Identity ---------------------------------------------------------------
+self_email:        "chargeback-automation@gokwik.co"
+self_display_name: "Chargeback Automation"
+contact_email:     ""
+
+# --- Trigger: team-forwarded PayU notifications ----------------------------
+# The team forwards each PayU mail from their @gokwik.co inbox to the bot
+# (subject prefixed with "Fwd:").
+extra_query:  'subject:"PAYU CHARGEBACK NOTIFICATION" -label:auto-replied-payu -label:auto-logged-manual-payu after:2026/06/08'
+# Match FIRST / SECOND / THIRD LEVEL — same body + attachment shape for all.
+subject_regex: '(FIRST|SECOND|THIRD)\s+LEVEL\s+PAYU\s+CHARGEBACK\s+NOTIFICATION'
+# The forwarded payload always carries this PayU sender on its original From.
+# We verify it lives in the body before processing, to avoid acting on
+# unrelated mails the team might forward us.
+required_forwarded_from: "PayU-Chargeback@payu.in"   # legacy: only used as fallback
+# New: direct-from-PayU mails are trusted by their From header alone.
+allowed_senders:
+  - "PayU-Chargeback@payu.in"
+
+poll_interval_seconds: 3600
+auto_replied_label:        "auto-replied-payu"
+auto_logged_manual_label:  "auto-logged-manual-payu"
+auto_reminded_label:       "auto-reminded-payu"
+reminder_delay_hours:      48
+reminder:
+  template_path: "templates/reminder.html.j2"
+  after_date:    "2026/06/08"
+
+# --- Merchant Onboarding sheet (URL -> Email + Entity Name) ----------------
+# COLUMN NAMES TO BE CONFIRMED ONCE THE SHEET IS SHARED WITH THE BOT.
+# Defaults below are placeholders; the orchestrator does a header-insensitive
+# match so we can tweak these without code changes.
+merchant_sheet:
+  spreadsheet_id: "1-Mj_dTa1LTzyB2ucidNhDqQqNsS09rEC742t9t61cgk"
+  gid:            335949376
+  range:          "A1:Z"
+  url_col:        "Website"        # column carrying the merchant's URL
+  email_col:      "Email ID"       # column carrying the merchant's email
+  entity_col:     "Entity Name"    # column used as the Planhat lookup key
+  brand_col:      "Merchant Name"  # column used as the human-facing brand name in the reply body
+
+# --- Planhat (CSM fallback by entity name) — shared with Easebuzz ----------
+planhat:
+  token_path: "planhat_token.txt"
+  base_url:   "https://api.planhat.com"
+
+# --- Always-Cc — shared internal ops team ----------------------------------
+internal_always_cc:
+  - "musadiq.ahmed@gokwik.co"
+  - "sachin.mk@gokwik.co"
+  - "PayU-Chargeback@payu.in"          # loop the PayU team in directly
+
+# Addresses that go on Cc ONLY when the ORIGINAL thread already had them
+# on To/Cc (i.e., they were already in the conversation). Keeps the
+# correct stakeholders looped in without adding them when they weren't
+# part of the original distribution.
+preserve_from_thread:
+  - "accountsreceivable@gokwik.co"
+
+# Domains that must NEVER be treated as a merchant recipient when we fall
+# back to the forwarded mail's To: line. Includes us + PayU notification
+# channel so they don't show up on To.
+internal_domains:
+  - "gokwik.co"
+  - "payu.in"
+
+# --- Reply ------------------------------------------------------------------
+reply:
+  template_path:   "templates/reply_payu.html.j2"
+  subject_override: ""
+  reply_in_thread: true
+  # Phone + Payment id come from the attachment; merchant URL/email/entity
+  # come from the Onboarding sheet. The reply will not go out unless these
+  # are all resolved.
+  required_fields:
+    - customer_phone
+    - transaction_id
+    - merchant_url
+
+# --- Success tracker — separate spreadsheet, PayU-specific tabs ------------
+# Reuses the same auto-create + section-band logic as Easebuzz so monthly
+# rollover is handled automatically.
+log_sheet:
+  spreadsheet_id: "1r5bELHKHJhWrydAs7TWOyyC-fkFrexbIn6cUeTp0MLw"
+  tab_pattern:    "{month} 26 PayU"
+  columns:
+    - "__today__"                       # [A] Date logged
+    - "payu_id"                         # [B] PayU Id
+    - "transaction_id"                  # [C] Transaction / Payment Id
+    - "transaction_date"                # [D] TXN Date
+    - "transaction_amount"              # [E] TXN Amount
+    - "transaction_amount"              # [F] CBK Amount (same as TXN)
+    - "merchant_email_id"               # [G] Merchant Email id
+    - "merchant_entity"                 # [H] Merchant (Entity Name)
+    - "__static__:Pending with ME"      # [I] Status
+    - "__static__:WIP"                  # [J] Ops Remarks
+    - "case_number"                     # [K] Case Number
+    - "__static__:Sachin(bot)"          # [L] Ops POC
+
+# --- Manual review tracker — when we cannot resolve merchant URL → email --
+failed_log_sheet:
+  spreadsheet_id: "1BOh8xO4NEWtVQ8UfI0ef2cXGRx9guoi8FEZ6d19djbM"
+  tab_pattern:    "Manual Review PayU"
+  columns:
+    - "__today__"
+    - "payu_id"
+    - "transaction_id"
+    - "transaction_date"
+    - "transaction_amount"
+    - "transaction_amount"
+    - "__static__:"                      # no resolved merchant email
+    - "merchant_url"                     # the URL we failed to resolve
+    - "__static__:Manual Review"
+    - "__static__:no merchant resolved"
+    - "case_number"
+    - "__static__:Sachin(bot-skipped)"

@@ -1,0 +1,13 @@
+**/credentials.json
+**/token.json
+**/token.json.bak
+**/planhat_token.txt
+**/logs/
+**/*.log
+**/__pycache__/
+**/*.pyc
+**/.venv/
+.vscode/
+.idea/
+.DS_Store
+*.swp

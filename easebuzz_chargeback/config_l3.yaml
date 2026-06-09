@@ -1,0 +1,127 @@
+# =============================================================================
+#   LEVEL 3 (Arbitration / L3 CB) chargeback automation config.
+#   Same identity / sheet / Planhat / internal_cc as L1 + L2; only the trigger,
+#   labels, template, and target sub-section differ.
+#
+#   Successful sends append into the SAME monthly tab as L2 ({month} 26 L2)
+#   but inside its "Arbitration/ L3 CB" sub-section, NOT the Pre Arbitration
+#   L2 section at the top.
+# =============================================================================
+
+# --- Auth: shared OAuth token with L1/L2 -----------------------------------
+auth:
+  credentials_path: "credentials.json"
+  token_path:       "token.json"
+
+# --- Identity ---------------------------------------------------------------
+self_email:        "chargeback-automation@gokwik.co"
+self_display_name: "Chargeback Automation"
+contact_email:     ""
+
+# --- Trigger (L3 escalations) -----------------------------------------------
+watch_sender: "accountsreceivable@gokwik.co"
+watch_senders:
+  - "accountsreceivable@gokwik.co"
+  - "chargeback@easebuzz.in"
+extra_query:  'subject:"Chargeback Escalation" subject:"Urgent Action Required" -label:auto-replied-l3 -label:auto-logged-manual-l3 after:2026/05/23'
+# Strict: requires "Chargeback Escalation" + "Level 3" + "Urgent Action Required"
+subject_regex: 'Chargeback\s+Escalation\b.*?\bLevel\s*3\b.*?\bUrgent\s+Action\s+Required\b'
+required_from:
+  - "accountsreceivable@gokwik.co"
+  - "chargeback@easebuzz.in"
+required_reply_to: "chargeback@easebuzz.in"
+authoritative_senders:
+  - "chargeback@easebuzz.in"
+poll_interval_seconds: 3600
+auto_replied_label:        "auto-replied-l3"
+auto_logged_manual_label:  "auto-logged-manual-l3"
+auto_reminded_label:       "auto-reminded-l3"
+reminder_delay_hours:      48
+reminder:
+  template_path: "templates/reminder.html.j2"
+  after_date:    "2026/05/01"   # never remind on auto-replies older than this
+
+# --- Field extraction (same body shape as L1/L2) ---------------------------
+body_table_labels:
+  case_id:                 "Case ID"
+  transaction_id:          "Transaction ID"
+  merchant_transaction_id: "Merchant Transaction ID"
+  transaction_date:        "Transaction Date Time"
+  customer_name:           "Customer Name"
+  customer_phone:          "Customer Phone"
+  customer_email:          "Customer Email"
+  dispute_amount:          "Dispute Amount"
+  dispute_type:            "Dispute Type"
+  merchant_name:           "__salutation__"
+
+# --- Master Sheet LT (merchant contacts) — shared with L1/L2 ---------------
+sheet:
+  spreadsheet_id: "1OczJ8a8CFgKUTp3V8dDoEIeQOfKohsPjAuLw5gjBjKk"
+  range:          "'Master Sheet LT'!A1:Z"
+  name_col:       "Merchant Name"
+  to_col:         "Email ID 1"
+  cc_col:         "New CSM"
+  status_col:     "Status"
+  status_skip_csm_patterns:
+    - "transferred"
+
+merchant_contacts: {}
+
+# --- Planhat (CSM fallback) — shared with L1/L2 ----------------------------
+planhat:
+  token_path: "planhat_token.txt"
+  base_url:   "https://api.planhat.com"
+
+# --- Always-Cc — shared with L1/L2 -----------------------------------------
+internal_always_cc:
+  - "musadiq.ahmed@gokwik.co"
+  - "accountsreceivable@gokwik.co"
+  - "sachin.mk@gokwik.co"
+  - "chargeback@easebuzz.in"
+
+# --- Reply ------------------------------------------------------------------
+reply:
+  template_path:   "templates/reply_l3.html.j2"   # same body as L2, "level 2" → "level 3"
+  subject_override: ""
+  reply_in_thread: true
+  required_fields:
+    - merchant_transaction_id
+    - customer_phone
+    - merchant_name
+
+# --- Success tracker — same monthly L2 tab, but Arbitration/L3 sub-section -
+log_sheet:
+  spreadsheet_id: "1r5bELHKHJhWrydAs7TWOyyC-fkFrexbIn6cUeTp0MLw"
+  tab_pattern:    "{month} 26 L2"
+  target_section: "Arbitration/ L3 CB"
+  columns:
+    - "__today__"                       # [A] Date
+    - "transaction_id"                  # [B] Easebuzz Id
+    - "merchant_transaction_id"         # [C] Transaction Id
+    - "transaction_date"                # [D] TXN Date
+    - "dispute_amount"                  # [E] TXN Amount
+    - "dispute_amount"                  # [F] CBK Amount
+    - "merchant_email_id"               # [G] Merchant Email id
+    - "merchant_name"                   # [H] Merchant
+    - "__static__:Pending with ME"      # [I] Status 1
+    - "__static__:WIP"                  # [J] Ops Remarks
+    - "__static__:"                     # [K] Reason
+    - "__static__:Sachin(bot)"          # [L] Ops POC
+
+# --- Manual review tracker — same spreadsheet, separate L3 tab -------------
+failed_log_sheet:
+  spreadsheet_id: "1BOh8xO4NEWtVQ8UfI0ef2cXGRx9guoi8FEZ6d19djbM"
+  tab_pattern:    "Manual Review L3"
+  columns:
+    - "__today__"
+    - "transaction_id"
+    - "merchant_transaction_id"
+    - "transaction_date"
+    - "dispute_amount"
+    - "dispute_amount"
+    - "merchant_email_id"
+    - "merchant_name"
+    - "__static__:Manual Review"
+    - "__static__:no recipients resolved"
+    - "__static__:"
+    - "__static__:Sachin(bot-skipped)"

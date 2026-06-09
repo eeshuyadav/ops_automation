@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <body style="font-family: Arial, sans-serif; color: #222; font-size: 14px; line-height: 1.5;">
+    <p>Dear {{ merchant_name or "" }} Team,</p>
+
+    <p>This is a <b>final escalation alert</b>. This chargeback case has now reached <b>Level 3</b> with Easebuzz. This is the last opportunity to defend the dispute before a binding decision is made by the card network.</p>
+
+    <p>🚨 <b>TAT at this stage is only 1 Calendar Day. Please act immediately.</b></p>
+
+    <p>
+      ❌ <b>STATUS: LEVEL 1 &amp; LEVEL 2 EVIDENCE REJECTED</b><br/>
+      The bank has found the documents provided at both earlier stages insufficient. This is now at <b>Arbitration — the final stage</b>.
+    </p>
+
+    <p>
+      ✅ <b>WHAT YOU MUST SHARE IMMEDIATELY</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      Please share the strongest two/three available evidence (<b>PDF format only</b>):
+    </p>
+
+    <ol style="margin-top:0;">
+      <li>Customer Satisfaction Email or any communication confirming receipt</li>
+      <li>Complaint Withdrawal Email from the customer (if obtained)</li>
+      <li>Proof of Delivery with delivery timestamp &amp; recipient signature</li>
+      <li>Courier tracking link showing successful delivery</li>
+    </ol>
+
+    <p>If the customer is willing to withdraw the complaint, they can send the following text via email to the bank:</p>
+
+    <p style="margin-left:14px; border-left:3px solid #ccc; padding-left:10px; color:#444;">
+      &ldquo;This is regarding the complaint raised to the bank against the transaction <b>{{ merchant_transaction_id or "—" }}</b> processed on <b>{{ transaction_date or "—" }}</b> for the amount <b>₹{{ dispute_amount or "—" }}</b> to <b>{{ merchant_name or "—" }}</b>. I have received the services from the merchant and I have no issue. I request you to please cancel my complaint.&rdquo;
+    </p>
+
+    <p>
+      📤 <b>HOW TO SUBMIT</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      <b>NOTE:</b> Share the documents directly with the Easebuzz chargeback team, keeping <b>GoKwik in CC</b>.
+    </p>
+
+    <p>
+      ⚠️ <b>IMPORTANT REMINDERS</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • DO NOT process any refund for this transaction.<br/>
+      • Non-response will result in auto-acceptance of the dispute and deduction from your settlements.
+    </p>
+
+    <p>
+      <b>DETAILS</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • Payment ID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ merchant_transaction_id or "—" }}<br/>
+      • Phone number&nbsp;&nbsp;&nbsp;&nbsp;: {{ customer_phone or "—" }}
+    </p>
+
+    <p>For any clarifications, please reply to this email.</p>
+
+    <p style="margin-top:20px;">
+      Regards,<br/>
+      Sachin
+    </p>
+  </body>
+</html>

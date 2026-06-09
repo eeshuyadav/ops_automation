@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html>
+  <body style="font-family: Arial, sans-serif; color: #222; font-size: 14px; line-height: 1.5;">
+    <p>Dear {{ merchant_name or "" }} Team,</p>
+
+    <p>This is an <b>escalation notice</b>. The documents submitted at Level 1 were deemed insufficient by the bank. This case has now moved to a <b>Level 2 Dispute</b> with Easebuzz.</p>
+
+    <p><b>Immediate action is required — TAT at this stage is only 3 Calendar Days.</b></p>
+
+    <p>
+      ❌ <b>WHY WAS LEVEL 1 REJECTED?</b><br/>
+      The bank found the earlier documents insufficient to defend this case. Stronger and more specific evidence is now needed.
+    </p>
+
+    <p>
+      ✅ <b>WHAT YOU MUST SHARE NOW</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      Please share at least two/three of the following (<b>PDF format only</b>):
+    </p>
+
+    <ol style="margin-top:0;">
+      <li>Customer Satisfaction Email or any communication confirming receipt</li>
+      <li>Complaint Withdrawal Email from the customer (if obtained)</li>
+      <li>Proof of Delivery with delivery timestamp &amp; recipient signature</li>
+      <li>Courier tracking link showing successful delivery</li>
+    </ol>
+
+    <p>If the customer is willing to withdraw the complaint, they can send the following text via email to the bank:</p>
+
+    <p style="margin-left:14px; border-left:3px solid #ccc; padding-left:10px; color:#444;">
+      &ldquo;This is regarding the complaint raised to the bank against the transaction <b>{{ merchant_transaction_id or "—" }}</b> processed on <b>{{ transaction_date or "—" }}</b> for the amount <b>₹{{ dispute_amount or "—" }}</b> to <b>{{ merchant_name or "—" }}</b>. I have received the services from the merchant and I have no issue. I request you to please cancel my complaint.&rdquo;
+    </p>
+
+    <p>
+      📤 <b>HOW TO SUBMIT</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      <b>NOTE:</b> Share the documents directly with the Easebuzz chargeback team, keeping <b>GoKwik in CC</b>.
+    </p>
+
+    <p>
+      ⚠️ <b>IMPORTANT REMINDERS</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • DO NOT process any refund for chargeback transactions.<br/>
+      • Non-response will result in auto-acceptance of the dispute and deduction from your settlements.
+    </p>
+
+    <p>
+      <b>DETAILS</b><br/>
+      ━━━━━━━━━━━━━━━━━━━━━━━━━━━<br/>
+      • Payment ID&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;: {{ merchant_transaction_id or "—" }}<br/>
+      • Phone number&nbsp;&nbsp;&nbsp;&nbsp;: {{ customer_phone or "—" }}
+    </p>
+
+    <p>For any clarifications, please reply to this email.</p>
+
+    <p style="margin-top:20px;">
+      Regards,<br/>
+      Sachin
+    </p>
+  </body>
+</html>

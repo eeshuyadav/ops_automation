@@ -1,0 +1,182 @@
+# --- Auth: user OAuth (shared for Gmail + Sheets) ---------------------------
+# First run opens a browser for one-time consent as chargeback-automation@gokwik.co.
+# Subsequent runs use token.json unattended.
+auth:
+  credentials_path: "credentials.json"
+  token_path:       "token.json"
+
+# --- Identity ---------------------------------------------------------------
+self_email:        "chargeback-automation@gokwik.co"
+self_display_name: "Chargeback Automation"
+
+# Who merchants should "reach out to" — appears in the reply body's
+# "You can reach me at X or Y" line. Separate from self_email so the
+# reply can sign-point to a human even though it's sent from the bot mailbox.
+contact_email: ""
+
+# --- Trigger ----------------------------------------------------------------
+# Chargeback mails arrive in this mailbox via the `accountsreceivable@gokwik.co`
+# Google Group. Gmail rewrites the From: header to the DL address, so we filter
+# by that. `subject:"Chargeback Raised"` matches any chargeback regardless of
+# transaction ID. We drop `is:unread` — user may have opened a mail; the
+# `-label:auto-replied` guard is what prevents double-replies.
+watch_sender: "accountsreceivable@gokwik.co"   # legacy single field, kept for back-compat
+# New: list of senders whose mails the bot processes. Gmail search ORs them.
+# Includes the direct-from-Easebuzz route that started May 2026.
+watch_senders:
+  - "accountsreceivable@gokwik.co"
+  - "chargeback@easebuzz.in"
+# Matches the exact subject shape: "... Chargeback Raised ... Action Required ..."
+# Transaction ID in the middle varies, so we don't anchor to it; both phrases
+# being present is what defines the chargeback format.
+#
+# `after:YYYY/MM/DD` pins the automation to mails received on/after that
+# date — historical chargebacks (before this date) stay human-handled.
+# Bump this when you roll out to a new cohort.
+extra_query:  'subject:"Chargeback Raised" subject:"Action Required" -label:auto-replied -label:auto-logged-manual after:2026/05/23'
+# Additional code-level regex applied to the subject AFTER the Gmail query.
+# Rejects "Chargeback Escalation: … Urgent Action Required!" or any other
+# subject that happens to contain the two phrases but isn't our exact format.
+subject_regex: 'Chargeback\s+Raised\b.*?\bAction\s+Required\b'
+# Identity checks — the mail MUST have all of these headers to be accepted.
+# Prevents anyone from spoofing the subject to trick the bot into replying.
+# * From:     delivered via the DL that routes chargebacks to our mailbox
+# * Reply-To: the original Easebuzz chargeback mailbox (added by Gmail's
+#             Google Group routing)
+# Accept either the Google-Group route OR Easebuzz sending directly. When
+# Easebuzz is the From, the Reply-To header is empty — handled by treating
+# chargeback@easebuzz.in as an `authoritative_senders` entry below, which
+# tells the orchestrator to skip the Reply-To check.
+required_from:
+  - "accountsreceivable@gokwik.co"
+  - "chargeback@easebuzz.in"
+required_reply_to: "chargeback@easebuzz.in"
+authoritative_senders:
+  - "chargeback@easebuzz.in"
+poll_interval_seconds: 3600   # 1 hour between polls in --loop mode
+auto_replied_label: "auto-replied"
+# Applied to threads we logged to the MANUAL tracker (gate 8 failed).
+# Excluded from `extra_query` so cron doesn't re-log them every hour.
+auto_logged_manual_label: "auto-logged-manual"
+# Applied to threads after we send the +48h reminder. One reminder per thread,
+# only when no human has replied to our auto-reply.
+auto_reminded_label:      "auto-reminded"
+reminder_delay_hours:     48
+reminder:
+  template_path: "templates/reminder.html.j2"
+  after_date:    "2026/05/01"   # never remind on auto-replies older than this
+
+# --- Field extraction from HTML body ---------------------------------------
+body_table_labels:
+  case_id:                 "Case ID"
+  transaction_id:          "Transaction ID"
+  merchant_transaction_id: "Merchant Transaction ID"
+  transaction_date:        "Transaction Date Time"
+  customer_name:           "Customer Name"
+  customer_phone:          "Customer Phone"
+  customer_email:          "Customer Email"
+  dispute_amount:          "Dispute Amount"
+  dispute_type:            "Dispute Type"
+  # Derived from the "Dear <name>," salutation at the top of the body.
+  merchant_name:           "__salutation__"
+
+# --- Google Sheet (merchant contacts) --------------------------------------
+# URL: https://docs.google.com/spreadsheets/d/1OczJ8a8CFgKUTp3V8dDoEIeQOfKohsPjAuLw5gjBjKk/edit?gid=964366452#gid=964366452
+# Tab "Master Sheet LT" — gid=964366452.
+# Read via the same OAuth token; the authorized user must have View access.
+sheet:
+  spreadsheet_id: "1OczJ8a8CFgKUTp3V8dDoEIeQOfKohsPjAuLw5gjBjKk"
+  range:          "'Master Sheet LT'!A1:Z"
+  name_col:       "Merchant Name"    # col B — e.g. "Unfld"
+  to_col:         "Email ID 1"       # col I — merchant POC mail → Reply To
+  cc_col:         "New CSM"          # col C — CSM gokwik email → Reply Cc
+  status_col:     "Status"           # col F — "Live" / "Churn" / "Transferred to Growth"
+  # If the row's Status matches any of these (substring, case-insensitive),
+  # the CSM from that row is NOT added to the reply's Cc — the merchant has
+  # been handed off and that CSM isn't the right person for this case.
+  status_skip_csm_patterns:
+    - "transferred"
+
+# --- Static merchant fallback (used when the sheet has no row for the
+#     extracted merchant) ---------------------------------------------------
+merchant_contacts: {}
+
+# --- Planhat (CSM source-of-truth, fallback when sheet has no CSM) ---------
+# Used only when the sheet doesn't yield a CSM for the merchant. Returns
+# both `owner` AND `coOwner` emails — both go on Cc.
+planhat:
+  token_path: "planhat_token.txt"
+  base_url:   "https://api.planhat.com"
+
+# --- Cc list on every reply -------------------------------------------------
+# Static internal team — always on every reply's Cc, regardless of whether
+# they were in the incoming mail's Cc. The CSM for the specific merchant is
+# added on top of this, from the sheet's `New CSM` column.
+internal_always_cc:
+  - "musadiq.ahmed@gokwik.co"
+  - "accountsreceivable@gokwik.co"
+  - "sachin.mk@gokwik.co"
+  - "chargeback@easebuzz.in"
+
+# --- Reply ------------------------------------------------------------------
+reply:
+  template_path:   "templates/reply.html.j2"
+  subject_override: ""
+  reply_in_thread: true
+  required_fields:
+    - merchant_transaction_id
+    - customer_phone
+    - merchant_name
+
+# --- Tracker sheet (append 1 row per successful send) ----------------------
+# URL: https://docs.google.com/spreadsheets/d/1r5bELHKHJhWrydAs7TWOyyC-fkFrexbIn6cUeTp0MLw/
+# The bot mailbox must have EDITOR access on this sheet (not just Viewer).
+# Tab auto-resolves each month from `tab_pattern` — {month} is filled with
+# current month name in several formats (full, 3-letter, upper) to match
+# the existing naming convention ("April 26 L1" / "APR 26 L1" / "JAN 26 L1").
+log_sheet:
+  spreadsheet_id: "1r5bELHKHJhWrydAs7TWOyyC-fkFrexbIn6cUeTp0MLw"
+  tab_pattern:    "{month} 26 L1"   # current month → "April 26 L1"
+  # Columns to fill (in sheet order). Reserved values:
+  #   "__today__"         today's date, DD-MMM-YYYY
+  #   "__static__:X"      literal string X (blank if X is empty)
+  #   "merchant_email_id" first Email ID 1 from Master Sheet LT row
+  #   Any other value is treated as a key from the extracted-fields dict.
+  columns:
+    - "__today__"                       # [A] Date
+    - "transaction_id"                  # [B] Easebuzz Id
+    - "merchant_transaction_id"         # [C] Transaction Id
+    - "transaction_date"                # [D] TXN Date
+    - "dispute_amount"                  # [E] TXN Amount (same as CBK)
+    - "dispute_amount"                  # [F] CBK Amount
+    - "merchant_email_id"               # [G] Merchant Email id (from sheet)
+    - "merchant_name"                   # [H] Merchant
+    - "__static__:Pending with ME"      # [I] Status 1
+    - "__static__:WIP"                  # [J] Ops Remarks
+    - "__static__:"                     # [K] Reason (not filled by us)
+    - "__static__:Sachin(bot)"          # [L] Ops POC — "(bot)" marks auto rows
+
+# --- Manual review tracker (rows where reply could NOT be sent) ------------
+# When gate 8 fails (recipients can't be resolved — e.g., merchant has only
+# internal @gokwik.co addresses on To and no sheet/Planhat match), we log
+# the case here so ops can manually pick it up. Same column shape as the
+# main tracker; only the static cells differ.
+failed_log_sheet:
+  spreadsheet_id: "1BOh8xO4NEWtVQ8UfI0ef2cXGRx9guoi8FEZ6d19djbM"
+  # Manual tracker uses ONE tab forever (no monthly rollover). Pattern is
+  # literal — no {month} substitution — so the script never tries to create
+  # a new tab for next month.
+  tab_pattern:    "Manual Review"
+  columns:
+    - "__today__"                            # [A] Date
+    - "transaction_id"                       # [B] Easebuzz Id
+    - "merchant_transaction_id"              # [C] Transaction Id
+    - "transaction_date"                     # [D] TXN Date
+    - "dispute_amount"                       # [E] TXN Amount
+    - "dispute_amount"                       # [F] CBK Amount
+    - "merchant_email_id"                    # [G] (likely empty — that's why it failed)
+    - "merchant_name"                        # [H] Merchant
+    - "__static__:Manual Review"             # [I] Status 1
+    - "__static__:no recipients resolved"    # [J] Ops Remarks
+    - "__static__:"                          # [K] Reason
+    - "__static__:Sachin(bot-skipped)"       # [L] Ops POC
